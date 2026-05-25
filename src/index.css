@@ -1,0 +1,176 @@
+/* frontend/src/index.css */
+:root {
+  --bg-primary: #FAF9F6;       /* Branco linho / tom de pedra quente */
+  --bg-surface: #FFFFFF;       /* Superfícies limpas */
+  --text-primary: #1A1A18;     /* Grafite profundo */
+  --text-secondary: #70706B;   /* Cinza quente */
+  --accent-gold: #9E8052;      /* Dourado champagne / bronze escovado */
+  --accent-gold-hover: #866B43;
+  --border-color: #E6E5E0;     /* Linhas de grade finas e discretas */
+  --radius-premium: 4px;       /* Bordas estruturadas, arquitetônicas e elegantes */
+  --shadow-premium: 0 4px 20px rgba(26, 26, 24, 0.03);
+  
+  /* Espaçamentos responsivos padrão */
+  --space-container: 40px;
+  --space-element: 24px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+/* Transições de alto padrão */
+.transition-premium {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Contêiner Geral */
+.app-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--space-container);
+}
+
+/* Estrutura do Cardápio */
+.catalog-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-container);
+  align-items: start;
+}
+
+/* Grade de Produtos */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-element);
+}
+
+/* Tipografia Fluida */
+.title-hero {
+  font-family: Georgia, serif;
+  font-size: clamp(24px, 4vw, 36px);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.text-hero {
+  font-size: clamp(12px, 2vw, 14px);
+  color: var(--text-secondary);
+  line-height: 1.8;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ==========================================
+   MEDIA QUERIES PARA RESPONSIVIDADE
+   ========================================== */
+
+/* Dispositivos Médios e Pequenos (Tablets e Celulares - abaixo de 1024px) */
+@media (max-width: 1024px) {
+  :root {
+    --space-container: 24px;
+    --space-element: 16px;
+  }
+
+  /* Adiciona recuo de segurança para evitar que a barra flutuante cubra os botões estáticos */
+  .app-container {
+    padding-bottom: 120px !important; 
+  }
+
+  .catalog-layout {
+    grid-template-columns: 1fr; /* Transforma o layout em coluna única */
+    gap: 32px;
+  }
+
+  /* Ajusta a sacola para ocupar largura total abaixo do cardápio */
+  .cart-container {
+    width: 100% !important;
+    position: static !important; /* Desativa a fixação lateral no mobile */
+    margin-bottom: 40px; 
+  }
+}
+
+/* Dispositivos Extremamente Pequenos (Celulares compactos - abaixo de 640px) */
+@media (max-width: 640px) {
+  :root {
+    --space-container: 16px;
+    --space-element: 12px;
+  }
+
+  /* Ajuste de espaçamento na barra de navegação */
+  .navbar-container {
+    padding: 16px 20px !important;
+  }
+
+  /* Exibe os produtos em coluna única no celular */
+  .products-grid {
+    grid-template-columns: 1fr; 
+  }
+
+  /* Transforma os formulários administrativos em coluna única */
+  .form-grid-responsive {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* Adapta as tabelas para evitar rolagem horizontal na administração */
+  .responsive-table th:nth-child(2), 
+  .responsive-table td:nth-child(2) {
+    display: none; 
+  }
+}
+/* Adicione este bloco ao final do seu frontend/src/index.css */
+
+/* Grades de Controle Administrativo Responsivas */
+.backoffice-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 1.2fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.backoffice-grid-equal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+/* Container de Abas Deslizáveis (Evita quebras de linha no celular) */
+.scrollable-tabs-container {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 32px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch; /* Rolagem suave no iOS */
+  scrollbar-width: none; /* Oculta barra no Firefox */
+}
+
+.scrollable-tabs-container::-webkit-scrollbar {
+  display: none; /* Oculta barra no Chrome/Safari */
+}
+
+/* Override responsivo para as novas grades */
+@media (max-width: 1024px) {
+  .backoffice-grid,
+  .backoffice-grid-equal {
+    grid-template-columns: 1fr !important; /* Força coluna única */
+    gap: 24px !important;
+  }
+}
