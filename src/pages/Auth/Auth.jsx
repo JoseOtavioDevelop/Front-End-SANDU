@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Input from '../../components/Input/Input';
+import api from '../../services/api'; // Importação do axios configurado com com withCredentials
 import { LogIn, UserPlus, Eye, EyeOff, Sparkles, ArrowRight } from 'lucide-react';
 
 export default function Auth({ onLogin }) {
@@ -13,31 +14,45 @@ export default function Auth({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) return alert('Preencha os campos obrigatórios.');
+    if (!email || !password) return alert('Por favor, preencha todos os campos obrigatórios.');
 
-    let assignedRole = 'CLIENTE';
+    try {
+      if (isLoginTab) {
+        // --- MODO LOGIN ---
+        const response = await api.post('/auth/login', { email, password });
+        const { user: loggedUser, token } = response.data; // Desestrutura usuário e token
 
-    // Regra do Desenvolvedor: Identifica contas administrativas
-    if (email.toLowerCase() === 'admin@maison.com' && password === 'admin123') {
-      assignedRole = 'ADMINISTRADOR';
-    } else if (email.toLowerCase().endsWith('@maison.com')) {
-      // Reconhece e-mails corporativos criados pelo adm como funcionários
-      assignedRole = 'FUNCIONARIO';
-    }
+        // Salva o token localmente no navegador
+        localStorage.setItem('token', token);
 
-    onLogin({
-      name: isLoginTab ? email.split('@')[0] : name,
-      email,
-      role: assignedRole
-    });
+        onLogin(loggedUser);
 
-    // Se for cliente, retorna ao cardápio. Se for equipe, vai para o painel executivo.
-    if (assignedRole === 'CLIENTE') {
-      navigate('/');
-    } else {
-      navigate('/executivo');
+        if (loggedUser.role === 'CLIENTE') {
+          navigate('/');
+        } else {
+          navigate('/executivo');
+        }
+      } else {
+        // --- MODO CADASTRO ---
+        if (!name) return alert('Por favor, preencha o seu nome completo.');
+        
+        await api.post('/auth/register', { 
+          name, 
+          email, 
+          password,
+          role: 'CLIENTE'
+        });
+
+        alert('Sua conta foi criada com sucesso! Por favor, faça o login.');
+        setIsLoginTab(true);
+        setName('');
+        setPassword('');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || 'Erro na comunicação com o servidor de banco de dados.';
+      alert(errorMessage);
     }
   };
 
@@ -100,24 +115,28 @@ export default function Auth({ onLogin }) {
             </button>
           </div>
 
-          <button type="submit" style={{
-            width: '100%',
-            backgroundColor: 'var(--text-primary)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 'var(--radius-premium)',
-            padding: '14px',
-            fontSize: '11px',
-            fontWeight: '600',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            marginTop: '16px'
-          }} className="transition-premium">
+          <button 
+            type="submit" 
+            style={{
+              width: '100%',
+              backgroundColor: 'var(--text-primary)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 'var(--radius-premium)',
+              padding: '14px',
+              fontSize: '11px',
+              fontWeight: '600',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              marginTop: '16px'
+            }} 
+            className="transition-premium"
+          >
             {isLoginTab ? <LogIn size={14} /> : <UserPlus size={14} />} {isLoginTab ? 'Entrar' : 'Confirmar Cadastro'}
           </button>
         </form>

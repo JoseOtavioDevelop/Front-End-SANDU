@@ -76,6 +76,69 @@ body {
   margin: 0 auto;
 }
 
+/* =======================================================
+   CLASSES DO BACKOFFICE (PAINEL ADMINISTRATIVO E EQUIPE)
+   ======================================================= */
+
+/* Cartão Administrativo Responsivo */
+.backoffice-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-premium);
+  padding: 32px;
+  height: fit-content;
+  box-shadow: var(--shadow-premium);
+}
+
+/* Cartão de Item de Produto Ativo */
+.backoffice-item-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-radius: var(--radius-premium);
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  gap: 16px;
+}
+
+/* Grades de Controle Administrativo Responsivas */
+.backoffice-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 1.2fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.backoffice-grid-equal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+/* 🔒 Container de Abas Deslizáveis (Bypass de Bug do Safari baseada em Display Block) */
+.scrollable-tabs-container {
+  display: block !important;          /* Muda para block para contornar o bug do Flexbox do Safari */
+  white-space: nowrap !important;     /* 🔒 Força os botões a ficarem estritamente na mesma linha */
+  width: 100% !important;             /* 🔒 Limita à largura exata da tela */
+  max-width: 100% !important;
+  overflow-x: scroll !important;      /* 🔒 Ativa a rolagem física horizontal livre */
+  overflow-y: hidden !important;      /* 🔒 Bloqueia o eixo vertical para liberar o toque */
+  -webkit-overflow-scrolling: touch !important; /* Ativa a rolagem por toque nativa ultra fluida */
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 32px;
+  box-sizing: border-box;
+}
+
+/* 🔒 Botões Internos alinhados de forma horizontal */
+.scrollable-tabs-container button {
+  display: inline-flex !important;    /* 🔒 Força comportamento horizontal inline */
+  vertical-align: middle !important;
+  margin-right: 12px !important;      /* Espaço sutil entre os botões */
+  white-space: nowrap !important;
+}
+
 /* ==========================================
    MEDIA QUERIES PARA RESPONSIVIDADE
    ========================================== */
@@ -102,6 +165,34 @@ body {
     width: 100% !important;
     position: static !important; /* Desativa a fixação lateral no mobile */
     margin-bottom: 40px; 
+  }
+
+  /* Força todas as grades administrativas a colapsarem em coluna única */
+  .backoffice-grid,
+  .backoffice-grid-equal {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+
+  /* Reduz o preenchimento interno dos cartões no mobile para sobrar espaço para os formulários */
+  .backoffice-card {
+    padding: 20px !important;
+  }
+
+  /* Espaço para a barra fina no menu de abas */
+  .scrollable-tabs-container {
+    padding-bottom: 10px; 
+  }
+  
+  /* Exibe uma barra de rolagem minimalista e elegante no celular */
+  .scrollable-tabs-container::-webkit-scrollbar {
+    display: block !important;
+    height: 3px !important;
+  }
+  
+  .scrollable-tabs-container::-webkit-scrollbar-thumb {
+    background-color: var(--accent-gold);
+    border-radius: 2px;
   }
 }
 
@@ -133,44 +224,22 @@ body {
   .responsive-table td:nth-child(2) {
     display: none; 
   }
-}
-/* Adicione este bloco ao final do seu frontend/src/index.css */
 
-/* Grades de Controle Administrativo Responsivas */
-.backoffice-grid {
-  display: grid;
-  grid-template-columns: 1.8fr 1.2fr;
-  gap: 32px;
-  align-items: start;
-}
+  /* Colapsa o card de produtos do admin de forma vertical, empurrando os botões para baixo */
+  .backoffice-item-card {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
 
-.backoffice-grid-equal {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
-  align-items: start;
-}
-
-/* Container de Abas Deslizáveis (Evita quebras de linha no celular) */
-.scrollable-tabs-container {
-  display: flex;
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 32px;
-  overflow-x: auto;
-  white-space: nowrap;
-  -webkit-overflow-scrolling: touch; /* Rolagem suave no iOS */
-  scrollbar-width: none; /* Oculta barra no Firefox */
-}
-
-.scrollable-tabs-container::-webkit-scrollbar {
-  display: none; /* Oculta barra no Chrome/Safari */
-}
-
-/* Override responsivo para as novas grades */
-@media (max-width: 1024px) {
-  .backoffice-grid,
-  .backoffice-grid-equal {
-    grid-template-columns: 1fr !important; /* Força coluna única */
-    gap: 24px !important;
+  /* Posiciona os botões de editar/excluir no rodapé do cartão do produto */
+  .backoffice-item-card-actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+    margin-top: 4px;
   }
 }

@@ -1,99 +1,62 @@
 // frontend/src/pages/StaffPortal/StaffPortal.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import useFetch from '../../hooks/useFetch';
 import { getDashboardMetrics } from '../../services/dashboardService';
 import { getTransactions, addTransaction } from '../../services/cashService';
-import { createProduct } from '../../services/productService';
+import { getProducts, createProduct, updateProduct, deleteProduct } from '../../services/productService'; // CRUD completo de produtos
+import { getOrders, approveOrder, cancelOrder } from '../../services/orderService';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import Input from '../../components/Input/Input';
 import { 
   BarChart2, DollarSign, FileText, ArrowUpRight, ArrowDownRight, 
-  RefreshCw, Sparkles, Download, Clock, Percent, Award, Filter, Search, Wallet, ChefHat, Edit2, Trash2, Plus 
+  RefreshCw, Sparkles, Download, Clock, Percent, Award, Filter, Search, Wallet, ChefHat, Edit2, Trash2, Plus, Inbox, Check, X, Upload, Image 
 } from 'lucide-react';
 
 const INITIAL_PRODUCTS_MOCKS = [
-  {
-    id: 'mock-1',
-    name: 'L’Original Gruyère',
-    description: 'Blend Angus grelhado na brasa, generosa camada de queijo Gruyère suíço derretido, cebolas caramelizadas lentamente no Vinho do Porto e maionese trufada no pão brioche tostado na manteiga de ervas.',
-    price: 46.00,
-    category: 'burgers',
-    badge: 'Assinatura',
-    prep_time: '15 min',
-    image_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80'
-  },
-  {
-    id: 'mock-2',
-    name: 'Le Truffé Sauvage',
-    description: 'Blend nobre de costela e fraldinha Angus, queijo Brie derretido, mix de cogumelos Paris e Shimeji salteados na manteiga noisette com raspas de limão siciliano e azeite de trufas brancas.',
-    price: 52.00,
-    category: 'burgers',
-    badge: 'Sazonal',
-    prep_time: '18 min',
-    image_url: 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=600&q=80'
-  },
-  {
-    id: 'mock-4',
-    name: 'Frites Aromatiques de la Maison',
-    description: 'Batatas rústicas cortadas manualmente, fritas em dupla cocção para máxima crocância, finalizadas com alecrim fresco tostado, flor de sal Maldon e servidas com maionese de alho negro.',
-    price: 24.00,
-    category: 'acompanhamentos',
-    badge: 'Clássico',
-    prep_time: '10 min',
-    image_url: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?auto=format&fit=crop&w=600&q=80'
-  }
+  { id: 'mock-1', name: 'L’Original Gruyère', description: 'Blend Angus grelhado na brasa, queijo Gruyère, cebolas caramelizadas.', price: 46.00, category: 'burgers', badge: 'Assinatura', prep_time: '15 min', image_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80' }
 ];
 
 const FALLBACK_METRICS = {
-  overview: { totalIn: 32450.00, totalOut: 9800.00 },
+  overview: { totalIn: 0.00, totalOut: 0.00 },
   peakHours: [
-    { hour: '17:00', total: 1200 },
-    { hour: '18:00', total: 3400 },
-    { hour: '19:00', total: 6800 },
-    { hour: '20:00', total: 8900 },
-    { hour: '21:00', total: 7200 },
-    { hour: '22:00', total: 3800 },
-    { hour: '23:00', total: 1150 }
+    { hour: '17:00', total: 0 }, { hour: '18:00', total: 0 }, { hour: '19:00', total: 0 },
+    { hour: '20:00', total: 0 }, { hour: '21:00', total: 0 }, { hour: '22:00', total: 0 }, { hour: '23:00', total: 0 }
   ],
   paymentMethods: [
-    { method: 'PIX', value: 14602.50, percent: 45 },
-    { method: 'Crédito', value: 9735.00, percent: 30 },
-    { method: 'Débito', value: 4867.50, percent: 15 },
-    { method: 'Dinheiro', value: 3245.00, percent: 10 }
-  ],
-  topProducts: [
-    { name: 'L’Original Gruyère', qty: 248, total: 11408 },
-    { name: 'Frites de la Maison', qty: 184, total: 4416 },
-    { name: 'Le Truffé Sauvage', qty: 112, total: 5824 }
-  ],
-  staffPerformance: [
-    { name: 'Jean-Luc (Cuisine)', salesCount: 210, revenue: 9660 },
-    { name: 'Claire (Salão)', salesCount: 168, revenue: 7728 }
+    { method: 'PIX', value: 0.00, percent: 0 }, { method: 'Cartão de Crédito', value: 0.00, percent: 0 },
+    { method: 'Cartão de Débito', value: 0.00, percent: 0 }, { method: 'Dinheiro', value: 0.00, percent: 0 }
   ]
 };
 
 const INITIAL_CASH_LOGS = [
-  { id: 't1', description: 'Venda Mesa 04 - L’Original Gruyère', amount: 92.00, type: 'ENTRADA', method: 'PIX', date: new Date() },
-  { id: 't2', description: 'Aquisição de Embalagens Kraft', amount: 350.00, type: 'SAIDA', method: 'Dinheiro', date: new Date() },
-  { id: 't3', description: 'Venda Mesa 08 - Combo Le Truffé', amount: 128.00, type: 'ENTRADA', method: 'Cartão de Crédito', date: new Date() }
+  { id: 't1', description: 'Venda Mesa 04 - L’Original Gruyère', amount: 92.00, type: 'ENTRADA', method: 'PIX', date: new Date() }
 ];
 
 export default function StaffPortal({ user }) {
-  const [activeTab, setActiveTab] = useState('metrics');
-  const { data: dbMetrics, loading: loadingMetrics } = useFetch(getDashboardMetrics);
-  const { data: dbTransactions, loading: loadingCash, refetch: refetchCash } = useFetch(getTransactions);
+  // Inicialização de Aba Dinâmica para Funcionários
+  const [activeTab, setActiveTab] = useState(user?.role === 'FUNCIONARIO' ? 'orders' : 'metrics');
+  
+  const { data: dbMetrics } = useFetch(getDashboardMetrics);
+  const { data: dbTransactions, refetch: refetchCash } = useFetch(getTransactions);
 
+  // Estados locais de produtos e pedidos
   const [productsList, setProductsList] = useState(INITIAL_PRODUCTS_MOCKS || []);
   const [editingProduct, setEditingProduct] = useState(null);
+  
+  const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
 
+  // Form de Caixa
   const [desc, setDesc] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState('ENTRADA');
   const [paymentMethod, setPaymentMethod] = useState('PIX');
 
+  // Filtros de Caixa
   const [searchTerm, setSearchTerm] = useState('');
   const [filterMethod, setFilterMethod] = useState('TODOS');
 
+  // Form de Produtos
   const [prodName, setProdName] = useState('');
   const [prodDesc, setProdDesc] = useState('');
   const [prodPrice, setProdPrice] = useState('');
@@ -102,11 +65,57 @@ export default function StaffPortal({ user }) {
   const [prodPrep, setProdPrep] = useState('');
   const [prodImg, setProdImg] = useState('');
 
+  // Form de Relatório
   const [reportType, setReportType] = useState('MENSAL');
   const [generating, setGenerating] = useState(false);
 
-  const metrics = (dbMetrics && dbMetrics.weekly && dbMetrics.weekly.length > 0) ? dbMetrics : FALLBACK_METRICS;
-  const currentTransactions = (dbTransactions && dbTransactions.length > 0) ? dbTransactions : (INITIAL_CASH_LOGS || []);
+  const fetchPendingOrders = () => {
+    setLoadingOrders(true);
+    getOrders()
+      .then(res => setOrders(res.data || []))
+      .catch(() => console.log('Aguardando lançamentos no banco de dados.'))
+      .finally(() => setLoadingOrders(false));
+  };
+
+  const fetchProductsFromDatabase = () => {
+    getProducts()
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setProductsList(res.data);
+        }
+      })
+      .catch((err) => console.error('Erro ao buscar produtos, mantendo mocks locais.', err));
+  };
+
+  useEffect(() => {
+    fetchPendingOrders();
+    fetchProductsFromDatabase();
+  }, [activeTab]);
+
+  const handleApproveOrder = async (id) => {
+    try {
+      await approveOrder(id);
+      alert(`Pedido #${id} homologado com sucesso.`);
+      fetchPendingOrders();
+      if (refetchCash) refetchCash();
+    } catch (err) {
+      alert('Erro ao homologar pedido.');
+    }
+  };
+
+  const handleCancelOrder = async (id) => {
+    if (window.confirm('Confirmar cancelamento deste pedido no Atelier?')) {
+      try {
+        await cancelOrder(id);
+        alert(`Pedido #${id} cancelado.`);
+        fetchPendingOrders();
+      } catch (err) {
+        alert('Erro ao cancelar pedido.');
+      }
+    }
+  };
+
+  const currentTransactions = (dbTransactions && dbTransactions.length > 0) ? dbTransactions : INITIAL_CASH_LOGS;
 
   const totalIn = currentTransactions.filter(t => t.type === 'ENTRADA').reduce((acc, curr) => acc + Number(curr.amount), 0);
   const totalOut = currentTransactions.filter(t => t.type === 'SAIDA').reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -114,7 +123,12 @@ export default function StaffPortal({ user }) {
   const lucrativeratio = totalIn > 0 ? ((balance / totalIn) * 100).toFixed(0) : 0;
 
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-  const chartData = metrics?.weekly?.map((item) => ({
+  
+  // Lógica de Renderização que prioriza o banco de dados em tempo real
+  const data = dbMetrics ? dbMetrics : FALLBACK_METRICS;
+
+  // 🔥 CORREÇÃO DE REFERÊNCIA: Alinhado para ler 'data?.weekly' em vez de 'metrics'
+  const chartData = data?.weekly?.map((item) => ({
     dia: weekDays[item.day - 1] || 'Outro',
     Valor: Number(item.total)
   })) || [];
@@ -154,6 +168,23 @@ export default function StaffPortal({ user }) {
     }
   };
 
+  // Carrega e Converte a Imagem do Dispositivo do Administrador para Base64
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 1.5 * 1024 * 1024) {
+      alert('Por favor, selecione uma imagem de até 1.5MB para manter o carregamento fluido.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProdImg(reader.result); // Define a string Base64 do arquivo carregado
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSaveProduct = async (e) => {
     e.preventDefault();
     if (!prodName || !prodPrice) return alert('Por favor, defina o nome e valor do produto.');
@@ -170,33 +201,26 @@ export default function StaffPortal({ user }) {
 
     try {
       if (editingProduct) {
-        setProductsList(prev => (prev || []).map(p => p.id === editingProduct.id ? { ...p, ...newProductData } : p));
-        setEditingProduct(null);
-        alert('Produto atualizado.');
+        await updateProduct(editingProduct.id, newProductData);
+        alert('Produto atualizado com sucesso no banco de dados!');
       } else {
-        const generatedId = 'added-' + Date.now();
-        const created = { id: generatedId, ...newProductData };
-        setProductsList(prev => [created, ...(prev || [])]);
-        alert('Novo produto integrado com sucesso.');
+        await createProduct(newProductData);
+        alert('Novo produto integrado com sucesso ao banco de dados!');
       }
-
-      setProdName('');
-      setProdDesc('');
-      setProdPrice('');
-      setProdCat('burgers');
-      setProdBadge('');
-      setProdPrep('');
-      setProdImg('');
+      handleCancelEdit();
+      fetchProductsFromDatabase();
     } catch (err) {
       console.error(err);
+      alert('Erro ao registrar os dados do produto.');
     }
   };
 
   const handleStartEdit = (product) => {
+    if (!product) return;
     setEditingProduct(product);
     setProdName(product.name);
     setProdDesc(product.description || '');
-    setProdPrice(product.price.toString());
+    setProdPrice(product.price !== undefined && product.price !== null ? product.price.toString() : '');
     setProdCat(product.category || 'burgers');
     setProdBadge(product.badge || '');
     setProdPrep(product.prep_time || '');
@@ -214,9 +238,16 @@ export default function StaffPortal({ user }) {
     setProdImg('');
   };
 
-  const handleDeleteProduct = (productId) => {
-    if (window.confirm('Excluir este item?')) {
-      setProductsList(prev => (prev || []).filter(p => p.id !== productId));
+  const handleDeleteProduct = async (productId) => {
+    if (window.confirm('Excluir este item de forma permanente do cardápio?')) {
+      try {
+        await deleteProduct(productId);
+        alert('Produto removido de forma definitiva!');
+        fetchProductsFromDatabase();
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao excluir o produto do servidor.');
+      }
     }
   };
 
@@ -258,26 +289,36 @@ export default function StaffPortal({ user }) {
         </span>
       </div>
 
-      {/* Abas com suporte a deslizar no Mobile (Sem quebrar linhas) */}
+      {/* Abas */}
       <div className="scrollable-tabs-container">
-        <button style={navTabStyle('metrics')} onClick={() => setActiveTab('metrics')}>
-          <BarChart2 size={12} style={{ marginRight: '6px' }} /> Métricas & Desempenho
+        {user?.role === 'ADMINISTRADOR' && (
+          <button style={navTabStyle('metrics')} onClick={() => setActiveTab('metrics')}>
+            <BarChart2 size={12} style={{ marginRight: '6px' }} /> Métricas & Desempenho
+          </button>
+        )}
+        
+        <button style={navTabStyle('orders')} onClick={() => setActiveTab('orders')}>
+          <Inbox size={12} style={{ marginRight: '6px' }} /> Painel de Pedidos
         </button>
+        
         <button style={navTabStyle('cash')} onClick={() => setActiveTab('cash')}>
           <Wallet size={12} style={{ marginRight: '6px' }} /> Fluxo de Caixa Reconciliado
         </button>
+        
         <button style={navTabStyle('menu')} onClick={() => setActiveTab('menu')}>
           <ChefHat size={12} style={{ marginRight: '6px' }} /> Gestão de Cardápio
         </button>
-        <button style={navTabStyle('reports')} onClick={() => setActiveTab('reports')}>
-          <FileText size={12} style={{ marginRight: '6px' }} /> Relatórios & Auditoria
-        </button>
+
+        {user?.role === 'ADMINISTRADOR' && (
+          <button style={navTabStyle('reports')} onClick={() => setActiveTab('reports')}>
+            <FileText size={12} style={{ marginRight: '6px' }} /> Relatórios & Auditoria
+          </button>
+        )}
       </div>
 
       {/* TAB: MÉTRICAS */}
-      {activeTab === 'metrics' && (
+      {activeTab === 'metrics' && user?.role === 'ADMINISTRADOR' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          {/* Métricas principais */}
           <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: '240px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-premium)', padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
@@ -302,13 +343,12 @@ export default function StaffPortal({ user }) {
             </div>
           </div>
 
-          {/* Gráfico Sem Grade Inline Fixa */}
           <div className="backoffice-grid">
             <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-premium)', padding: '32px' }}>
               <h4 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)', marginBottom: '24px' }}>Comportamento Horário (Pico de Vendas)</h4>
               <div style={{ width: '100%', height: 260 }}>
                 <ResponsiveContainer>
-                  <AreaChart data={(FALLBACK_METRICS.peakHours || [])}>
+                  <AreaChart data={(data?.peakHours || [])}>
                     <defs>
                       <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="var(--accent-gold)" stopOpacity={0.2}/>
@@ -329,7 +369,7 @@ export default function StaffPortal({ user }) {
               <div>
                 <h4 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)', marginBottom: '24px' }}>Métodos de Pagamento</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {(FALLBACK_METRICS.paymentMethods || []).map((pm) => (
+                  {(data?.paymentMethods || []).map((pm) => (
                     <div key={pm.method}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-primary)', marginBottom: '4px' }}>
                         <span>{pm.method}</span>
@@ -342,6 +382,87 @@ export default function StaffPortal({ user }) {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: PAINEL DE PEDIDOS */}
+      {activeTab === 'orders' && (
+        <div className="backoffice-grid">
+          <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-premium)', padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h4 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Fila de Pedidos Pendentes</h4>
+              <button onClick={fetchPendingOrders} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>
+                <RefreshCw size={14} />
+              </button>
+            </div>
+
+            {loadingOrders ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Aguardando conexão...</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '500px', overflowY: 'auto' }}>
+                {(orders || []).map((order) => (
+                  <div key={order.id} style={{
+                    padding: '16px',
+                    borderRadius: 'var(--radius-premium)',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderLeft: `4px solid ${order.status === 'PENDENTE' ? 'var(--accent-gold)' : order.status === 'PAGO' ? 'green' : 'var(--text-secondary)'}`
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <strong style={{ fontSize: '14px' }}>Pedido #{order.id} — {order.customer_name}</strong>
+                      <span style={{ fontSize: '11px', fontWeight: '600', letterSpacing: '0.05em', color: order.status === 'PENDENTE' ? 'var(--accent-gold)' : 'var(--text-primary)' }}>
+                        {order.status}
+                      </span>
+                    </div>
+                    
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>📍 {order.address}</p>
+                    
+                    <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+                        Método: {order.payment_method}
+                      </span>
+                      <strong style={{ fontSize: '14px', color: 'var(--text-primary)' }}>R$ {Number(order.total).toFixed(2)}</strong>
+                    </div>
+
+                    {order.status === 'PENDENTE' && (
+                      <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                        <button 
+                          onClick={() => handleApproveOrder(order.id)}
+                          style={{ flex: 1, backgroundColor: 'var(--text-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-premium)', padding: '8px', fontSize: '11px', fontWeight: '600', letterSpacing: '0.05em', textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                        >
+                          <Check size={12} /> Homologar Pago
+                        </button>
+                        <button 
+                          onClick={() => handleCancelOrder(order.id)}
+                          style={{ backgroundColor: 'transparent', color: '#c62828', border: '1px solid #c62828', borderRadius: 'var(--radius-premium)', padding: '8px 12px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {(orders || []).length === 0 && (
+                  <p style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>Sem pedidos no histórico recente.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-premium)', padding: '32px', display: 'flex', flexDirection: 'column', justifycontent: 'space-between' }}>
+            <div>
+              <h4 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>Instruções de Conciliação</h4>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineheight: '1.6', marginBottom: '16px' }}>
+                Os pedidos enviados pelos clientes chegam neste painel com status <strong>PENDENTE</strong>. Eles não constam no faturamento do caixa ainda.
+              </p>
+              <ul style={{ fontSize: '13px', color: 'var(--text-secondary)', paddingLeft: '20px', lineheight: '1.8' }}>
+                <li>Confirme a chegada da mensagem de solicitação no WhatsApp.</li>
+                <li>Verifique se o pagamento (PIX ou Cartão) de fato ocorreu.</li>
+                <li>Clique em <strong>"Homologar Pago"</strong> para autorizar a entrada do valor no fluxo financeiro da semana.</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -421,8 +542,6 @@ export default function StaffPortal({ user }) {
       {/* TAB: GESTÃO DE CARDÁPIO */}
       {activeTab === 'menu' && (
         <div className="backoffice-grid">
-          
-          {/* Formulário de Adicionar / Editar */}
           <div style={{ 
             backgroundColor: 'var(--bg-surface)', 
             border: '1px solid var(--border-color)', 
@@ -456,7 +575,43 @@ export default function StaffPortal({ user }) {
                 <Input label="Selo Especial" value={prodBadge} onChange={(e) => setProdBadge(e.target.value)} placeholder="Ex: Chef Choice" />
               </div>
 
-              <Input label="Link da Imagem Unsplash" value={prodImg} onChange={(e) => setProdImg(e.target.value)} placeholder="https://..." />
+              {/* Imagem em Base64 */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
+                <label style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Imagem do Prato (Carregar foto ou link)
+                </label>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <label style={{
+                    padding: '10px 16px',
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-premium)',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }} className="transition-premium">
+                    <Upload size={13} /> Carregar Foto do Dispositivo
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageUpload} 
+                      style={{ display: 'none' }} 
+                    />
+                  </label>
+                  
+                  {prodImg && (
+                    <span style={{ fontSize: '11px', color: 'var(--accent-gold)', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Image size={12} /> Foto anexada com sucesso
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <Input label="Ou cole o Link de imagem da internet (URL)" value={prodImg} onChange={(e) => setProdImg(e.target.value)} placeholder="https://..." />
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
                 <button type="submit" style={{ flex: 2, backgroundColor: 'var(--text-primary)', color: '#fff', border: 'none', borderRadius: 'var(--radius-premium)', padding: '12px', fontSize: '11px', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }} className="transition-premium">
@@ -471,29 +626,14 @@ export default function StaffPortal({ user }) {
             </form>
           </div>
 
-          {/* Listagem para Edição / Exclusão */}
-          <div style={{ 
-            backgroundColor: 'var(--bg-surface)', 
-            border: '1px solid var(--border-color)', 
-            borderRadius: 'var(--radius-premium)', 
-            padding: '32px',
-            boxShadow: 'var(--shadow-premium)'
-          }}>
+          <div className="backoffice-card">
             <h4 style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '24px' }}>
               Seleção do Cardápio Ativo ({(productsList || []).length} itens)
             </h4>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '580px', overflowY: 'auto', paddingRight: '4px' }}>
               {(productsList || []).map((product) => (
-                <div key={product.id} style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '16px',
-                  borderRadius: 'var(--radius-premium)',
-                  backgroundColor: 'var(--bg-primary)',
-                  border: '1px solid var(--border-color)'
-                }}>
+                <div key={product.id} className="backoffice-item-card">
                   <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                     <div style={{ width: '48px', height: '48px', borderRadius: '4px', backgroundColor: 'var(--border-color)', overflow: 'hidden' }}>
                       <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -506,7 +646,7 @@ export default function StaffPortal({ user }) {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="backoffice-item-card-actions">
                     <button 
                       onClick={() => handleStartEdit(product)} 
                       title="Editar Item"
@@ -528,12 +668,11 @@ export default function StaffPortal({ user }) {
               ))}
             </div>
           </div>
-
         </div>
       )}
 
       {/* TAB: RELATÓRIOS */}
-      {activeTab === 'reports' && (
+      {activeTab === 'reports' && user?.role === 'ADMINISTRADOR' && (
         <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-premium)', padding: '40px', maxWidth: '640px', margin: '0 auto', boxShadow: 'var(--shadow-premium)' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <FileText size={32} style={{ color: 'var(--accent-gold)', marginBottom: '16px' }} />

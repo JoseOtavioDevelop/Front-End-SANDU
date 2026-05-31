@@ -11,7 +11,6 @@ import { CartProvider } from './context/CartContext';
 export default function App() {
   const [user, setUser] = useState(null);
 
-  // Carrega sessão existente se houver
   useEffect(() => {
     const savedUser = localStorage.getItem('staff_session');
     if (savedUser) {
@@ -27,6 +26,7 @@ export default function App() {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('staff_session');
+    localStorage.removeItem('token');
   };
 
   return (
@@ -36,22 +36,29 @@ export default function App() {
           <Navbar user={user} onLogout={handleLogout} />
           <main style={{ flex: 1, padding: '20px 0' }}>
             <Routes>
-              {/* Rota pública do cardápio */}
               <Route path="/" element={<Catalog />} />
               
-              {/* Rota de Login / Cadastro */}
               <Route path="/login" element={
-                user ? <Navigate to="/executivo" /> : <Auth onLogin={handleLogin} />
+                user ? (
+                  user.role === 'CLIENTE' ? <Navigate to="/" /> : <Navigate to="/executivo" />
+                ) : (
+                  <Auth onLogin={handleLogin} />
+                )
               } />
 
-              {/* Rotas Restritas protegidas por autenticação */}
               <Route path="/executivo" element={
-                user ? <StaffPortal user={user} /> : <Navigate to="/login" />
+                user && (user.role === 'ADMINISTRADOR' || user.role === 'FUNCIONARIO') 
+                  ? <StaffPortal user={user} /> 
+                  : <Navigate to="/login" />
               } />
               
               <Route path="/funcionarios" element={
-                user ? <Employees /> : <Navigate to="/login" />
+                user && user.role === 'ADMINISTRADOR' 
+                  ? <Employees /> 
+                  : <Navigate to="/login" />
               } />
+
+              <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </main>
         </div>

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import ProductCard from '../../components/Card/ProductCard';
 import { useCart } from '../../context/CartContext';
 import { getProducts } from '../../services/productService';
+import { createOrder } from '../../services/orderService';
 import { ShoppingBag, Send, MapPin, User, CreditCard, Sparkles, Compass } from 'lucide-react';
 
 // Cardápio completo com 12 pratos e fotografias de alto padrão gastronômico
@@ -146,7 +147,7 @@ export default function Catalog() {
   const [suggestions, setSuggestions] = useState([]);
   const [typingTimeout, setTypingTimeout] = useState(null);
 
-  const whatsappNumber = '5511999999999'; // Insira o telefone da sua loja
+  const whatsappNumber = '5562995085398'; // Substitua pelo número real da loja
 
   useEffect(() => {
     getProducts()
@@ -203,7 +204,7 @@ export default function Catalog() {
     );
   };
 
-  // Opção B: Busca inteligente de endereço com sugestões reais (Filtro por Brasil)
+  // Opção B: Busca de endereço com sugestões reais (Filtro por Brasil)
   const handleAddressInputChange = (val) => {
     setAddress(val);
     if (typingTimeout) clearTimeout(typingTimeout);
@@ -244,16 +245,33 @@ export default function Catalog() {
     ? displayedProducts 
     : displayedProducts.filter(p => p.category.toLowerCase() === activeCategory);
   
-  const cartTotal = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
+  // 🔥 PROTEÇÃO CONTRA DECIMAL STRING: Converte para número na soma
+  const cartTotal = cart.reduce((acc, item) => acc + Number(item.price) * item.qty, 0);
 
   const handleScrollToCart = () => {
     document.getElementById('checkout-box').scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendWhatsApp = () => {
+  const handleSendWhatsApp = async () => {
     if (cart.length === 0) return alert('Sua sacola de pedidos está vazia.');
     if (!customerName || !address) return alert('Por favor, preencha todos os dados de entrega.');
 
+    try {
+      // 1. Envia o pedido de forma pendente para o banco
+      const orderPayload = {
+        customer_name: customerName,
+        address: address,
+        payment_method: paymentMethod,
+        total: cartTotal,
+        // 🔥 PROTEÇÃO CONTRA DECIMAL STRING: Converte para número antes de salvar no JSON do banco
+        items: cart.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: Number(i.price) }))
+      };
+      await createOrder(orderPayload); 
+    } catch (err) {
+      console.error('Falha de escrita de dados do pedido:', err);
+    }
+
+    // 2. Envio da mensagem para o WhatsApp do restaurante
     let text = '⚜️ *SOLICITAÇÃO DE PEDIDO — MAISON DU BURGER* ⚜️\n\n';
     text += `👤 *Cliente:* ${customerName}\n`;
     text += `📍 *Mesa ou Endereço:* ${address}\n`;
@@ -263,7 +281,8 @@ export default function Catalog() {
 
     cart.forEach((item) => {
       text += `• *${item.qty}x* ${item.name.toUpperCase()}\n`;
-      text += `  └ R$ ${(item.price * item.qty).toFixed(2)}\n\n`;
+      // 🔥 PROTEÇÃO CONTRA DECIMAL STRING: Converte para número no cálculo do texto
+      text += `  └ R$ ${(Number(item.price) * item.qty).toFixed(2)}\n\n`;
     });
 
     text += '⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\n';
@@ -386,7 +405,7 @@ export default function Catalog() {
             </div>
           ) : (
             <div>
-              {/* Itens adicionados */}
+              {/* Itens adicionados na sacola com correção de .toFixed */}
               <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '24px', paddingRight: '4px' }}>
                 {cart.map((item) => (
                   <div key={item.id} style={{
@@ -399,7 +418,8 @@ export default function Catalog() {
                   }}>
                     <div>
                       <h4 style={{ fontSize: '13px', fontWeight: '500', margin: '0 0 2px 0', color: 'var(--text-primary)' }}>{item.name}</h4>
-                      <span style={{ fontSize: '12px', color: 'var(--accent-gold)', fontWeight: '500' }}>R$ {item.price.toFixed(2)}</span>
+                      {/* 🔥 CORREÇÃO DE SEGURANÇA: Converte para número antes de chamar o toFixed */}
+                      <span style={{ fontSize: '12px', color: 'var(--accent-gold)', fontWeight: '500' }}>R$ {Number(item.price).toFixed(2)}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <button 
