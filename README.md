@@ -1,75 +1,6 @@
-Pré-requisitos de Máquina
-Para rodar a aplicação em qualquer computador, certifique-se de ter instalado:
-Docker Desktop (com suporte a Docker Compose instalado e ativo).
-Node.js (versão 18.0.0 ou superior para o ambiente frontend).
-Git (para controle de versão).
-
-
-🎨 1. Configuração do Frontend (React + Vite)
-Dependências Necessárias
-Se estiver configurando o frontend do zero ou em outra máquina, acesse o terminal dentro da pasta frontend/ e execute o seguinte comando para instalar as bibliotecas obrigatórias:
-code
-Bash
-npm install axios react-router-dom recharts lucide-react react-is
-Variáveis de Ambiente do Frontend
-Crie o arquivo .env (ou .env.local) diretamente dentro do diretório frontend/ (no mesmo nível de package.json) e insira o IP de rede da máquina que está rodando o Docker do backend:
-code
-Text
-VITE_API_URL=http://192.168.3.9:3000/api
-(Substitua o IP 192.168.3.9 pelo IP real da máquina onde o container do backend está em execução).
-Executando o Frontend localmente:
-code
-Bash
-# Instala as dependências listadas no package.json
-npm install
-
-# Inicia o servidor do Vite limpando caches antigos
-npm run dev -- --force
-
-
-💻 2. Configuração do Backend e Banco de Dados (Docker)
-O backend e o banco de dados rodam de forma automatizada de dentro de containers Docker.
-
-Dependências Registradas no Backend
-Para fins de desenvolvimento contínuo local, as seguintes dependências estão configuradas no package.json do backend:
-express, cors, cookie-parser: Servidor, CORS seguro e processamento de cookies.
-jsonwebtoken, bcryptjs: Assinatura de tokens e criptografia de senhas.
-mysql2: Driver pooling de conexão com o banco de dados.
-
-
-Variáveis de Ambiente do Backend
-Crie o arquivo .env dentro da pasta backend/ com as seguintes definições de conexão segura:
-code
-Text
-DB_HOST=db
-DB_USER=root
-DB_PASSWORD=root
-DB_NAME=hamburgueria
-PORT=3000
-JWT_SECRET=sua_chave_secreta_e_segura_de_producao
-FRONTEND_URL=http://192.168.3.9:5173
-
-
-
-🐋 3. Comandos do Docker & Docker Compose
-Abra o terminal do seu computador na pasta raiz do projeto (onde está o arquivo docker-compose.yml) para gerenciar os containers:
-Iniciar os containers em segundo plano (automático):
-Este comando fará o download da imagem do MySQL, construirá a imagem do Node.js descrita no Dockerfile, executará as portas de rede e manterá os servidores ativos de forma silenciosa e automática.
-code
-Bash
-docker compose up -d --build
-Parar e remover os containers e limpar caches antigos de volumes:
-Use este comando se precisar resetar o banco de dados ou limpar definições de volumes antigas da máquina.
-code
-Bash
-docker compose down -v
-Acompanhar os logs do servidor Node.js em tempo real:
-code
-Bash
-docker compose logs -f backend
-
 -- =========================================================================
 -- SCRIPT DE INICIALIZAÇÃO COMPLETO - MAISON DU BURGER
+-- Execute este script no console do Beekeeper Studio
 -- =========================================================================
 
 CREATE DATABASE IF NOT EXISTS hamburgueria;
@@ -83,7 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     role ENUM('CLIENTE', 'FUNCIONARIO', 'ADMINISTRADOR') NOT NULL DEFAULT 'CLIENTE',
     phone VARCHAR(20),
-    position VARCHAR(100) NULL, -- Armazena o cargo de texto livre (ex: Chef de Cuisine)
+    position VARCHAR(100) NULL, -- Armazena o cargo operacional em texto livre (ex: Chef de Cuisine)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -119,26 +50,28 @@ CREATE TABLE IF NOT EXISTS orders (
     payment_method VARCHAR(50) NOT NULL,
     total DECIMAL(10, 2) NOT NULL,
     status ENUM('PENDENTE', 'PAGO', 'CANCELADO') NOT NULL DEFAULT 'PENDENTE',
-    items JSON NOT NULL,            -- Lista de itens da sacola salvos de forma dinâmica em formato JSON
+    items JSON NOT NULL,            -- Armazena os hambúrgueres e bebidas de forma dinâmica em formato JSON
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =========================================================================
--- DADOS INICIAIS (SEEDS)
+-- LIMPEZA E INSERÇÃO DE DADOS INICIAIS (SEEDS)
 -- =========================================================================
 
 DELETE FROM cash_transactions;
 DELETE FROM products;
-DELETE FROM users WHERE email IN ('admin@maison.com', 'jeanluc@maison.com', 'claire@maison.com');
+DELETE FROM users WHERE email IN ('admin@maison.com', 'jeanluc@maison.com', 'claire@maison.com', 'otavioadm@maison.com');
 DELETE FROM orders;
 
--- Semeando Usuários (Senha encriptada de 'admin123', 'jean123' e 'claire123' usando algoritmo bcryptjs)
+-- Semeando Usuários (Senhas encriptadas usando o algoritmo bcryptjs)
+-- Senhas: 'admin123' para os administradores, 'jean123' e 'claire123' para colaboradores
 INSERT INTO users (name, email, password, role, phone, position) VALUES 
 ('Proprietário Geral', 'admin@maison.com', '$2a$10$tZbe9g0Tj89N0O8ZOf9w8eX2n8/4K.mZ8G9M/nEqoKGehBGrf1S.S', 'ADMINISTRADOR', '(11) 99999-9999', 'Diretor Executivo'),
+('Otavio Administrador', 'otavioadm@maison.com', '$2a$10$tZbe9g0Tj89N0O8ZOf9w8eX2n8/4K.mZ8G9M/nEqoKGehBGrf1S.S', 'ADMINISTRADOR', '(11) 98888-8888', 'Sócio Proprietário'),
 ('Jean-Luc Cuisine', 'jeanluc@maison.com', '$2a$10$vG/sJ3gR66zFq3NlF8A4Se0g7tB.oA4yX5z8D.B7bKkR.H5F0D9Z6', 'FUNCIONARIO', '(11) 98888-8888', 'Chef de Cuisine'),
 ('Claire Salão', 'claire@maison.com', '$2a$10$9r6I.S4Z3mSOf6y/L6SXeO3q7K.wO3X5z8D.B7bKkR.H5F0D9Z6', 'FUNCIONARIO', '(11) 97777-7777', 'Atendente Sênior');
 
--- Semeando o Cardápio Completo (12 Pratos Gourmet com Imagens Unsplash)
+-- Semeando o Cardápio Completo (12 Pratos Gourmet com Imagens do Unsplash)
 INSERT INTO products (id, name, description, price, category, badge, prep_time, image_url) VALUES
 (1, 'L’Original Gruyère', 'Blend Angus grelhado na brasa, generosa camada de queijo Gruyère suíço derretido, cebolas caramelizadas lentamente no Vinho do Porto e maionese trufada no pão brioche tostado na manteiga de ervas.', 46.00, 'burgers', 'Assinatura', '15 min', 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80'),
 (2, 'Le Truffé Sauvage', 'Blend nobre de costela e fraldinha Angus, queijo Brie derretido, mix de cogumelos Paris e Shimeji salteados na manteiga noisette com raspas de limão siciliano e azeite de trufas brancas.', 52.00, 'burgers', 'Sazonal', '18 min', 'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=600&q=80'),
@@ -153,7 +86,7 @@ INSERT INTO products (id, name, description, price, category, badge, prep_time, 
 (11, 'Petit Gâteau au Chocolat Belge', 'Bolinho quente de chocolate belga Callebaut 70% cacau com coração cremoso derretido, acompanhado de sorvete artesanal de fava de baunilha de Madagascar e coulis de frutas vermelhas.', 26.00, 'acompanhamentos', 'Sobremesa', '12 min', 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?auto=format&fit=crop&w=600&q=80'),
 (12, 'Cheesecake de Frutas Amarelas', 'Base crocante de biscoito amanteigado, creme aerado e aveludado de cream cheese premium, finalizado com compota artesanal de manga, maracujá selvagem e physalis frescas.', 24.00, 'acompanhamentos', 'Sobremesa', '8 min', 'https://images.unsplash.com/photo-1533134242443-d4fd215305ad?auto=format&fit=crop&w=600&q=80');
 
--- Semeando Lançamentos Iniciais de Caixa (Histórico)
+-- Semeando Lançamentos Iniciais de Caixa (Histórico para o Dashboard)
 INSERT INTO cash_transactions (description, amount, type, method, date) VALUES
 ('Faturamento Consolidado - Abertura Semanal', 12500.00, 'ENTRADA', 'Dinheiro', NOW() - INTERVAL 5 DAY),
 ('Pagamento de Fornecedor de Carnes Nobres', 3450.00, 'SAIDA', 'PIX', NOW() - INTERVAL 4 DAY),
@@ -161,7 +94,7 @@ INSERT INTO cash_transactions (description, amount, type, method, date) VALUES
 ('Aquisição de Gás GLP para o Atelier', 280.00, 'SAIDA', 'Dinheiro', NOW() - INTERVAL 2 DAY),
 ('Venda Homologada - Pedido #1022', 218.00, 'ENTRADA', 'Cartão de Crédito', NOW() - INTERVAL 1 DAY);
 
--- Semeando Fila de Pedidos para Testar Homologação
+-- Semeando Pedidos Iniciais na Fila de Homologação
 INSERT INTO orders (customer_name, address, payment_method, total, status, items) VALUES
 ('Carlos Mendes', 'Rua das Flores, 142 - Centro, São Paulo', 'PIX', 92.00, 'PAGO', '[{"id": "mock-1", "name": "L’Original Gruyère", "qty": 2, "price": 46.00}]'),
 ('Mariana Rocha', 'Mesa 04 (Salão Central)', 'Cartão de Crédito', 128.00, 'PENDENTE', '[{"id": "mock-2", "name": "Le Truffé Sauvage", "qty": 1, "price": 52.00}, {"id": "mock-4", "name": "Frites de la Maison", "qty": 1, "price": 24.00}]'),
